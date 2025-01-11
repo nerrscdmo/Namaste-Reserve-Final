@@ -1,0 +1,420 @@
+---
+title: ''
+output: html_document
+---
+
+## About  
+
+This section contains summary graphics. The color palettes are generated via the `khroma` R package and were developed to be colorblind-friendly.  
+
+These summary figures tell a graphical story about current conditions and trends through time. There are two types of figure:  
+
+-  **Averaged stacked bar charts** -  show the relative distribution of species and cover classes and how these relationships change over time.  
+    -  Charts have been created at the Site, Zone, and Site x Zone levels.  
+    -  Chart categories feature dominant species or species groups as identified by the Reserve in the "veg-specs.xlsx" file, "Analysis_Specs" sheet.  
+-  **Spatial stacked bar charts** - show the relative distribution of species and cover classes as above, but for each plot. These charts are laid out spatially by site. For ease of interpretation, only 4 evenly-spaced time points are used along the x-axis in each chart.    
+
+
+### Questions addressed  
+
+-  Which species characterize each site and marsh zone?  
+-  How do relative abundances of species/groups fluctuate among years and is there a visual trend with time (e.g., corresponds to severe events, storms, staff turnover)?  
+-  For QA/QC purposes, does the data make sense?
+
+
+## Averaged: By Veg Zone  
+
+
+
+### User-chosen species  
+
+The species/groups identified by the Reserve for these graphs are (in order):  
+
+```{r show-userChoices, results = 'asis'}
+cat(paste("*", anaSpec_list$multivar$Choice), sep="\n")
+```
+
+And so the groups appearing in the plots should be (alphabetically):  
+
+```{r show-userChoices-groups, results = 'asis'}
+cat(paste("*", levels(anaSpec_dfs$multivar$Species_or_Group)), sep="\n")
+```
+
+
+```{r graph-avgBar-userChoices}
+anaSpec_dfs$multivar %>% 
+    group_by(Vegetation_Zone, Year, Species_or_Group) %>% 
+    summarize(Cover = mean(Cover, na.rm = TRUE)) %>% 
+    ggplot(aes(x = Year, y = Cover,
+               group = Species_or_Group, fill = Species_or_Group),
+           alpha = 0.8) +
+    geom_col(position = "stack") +
+    facet_wrap(~Vegetation_Zone) +
+    scale_fill_manual(values = palcols_multivar) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(title = "Vegetation Cover through time",
+         subtitle = "averaged by Species within Zone",
+         y = "% Cover",
+         fill = "Species or \nVegetation Group")
+```
+
+
+### Top 3 species by mean cover across the entire dataset  
+
+These were automatically calculated as the species having the highest mean cover, across all plots and dates.  
+
+```{r graph-avgBar-top3, message = FALSE}
+top_3_mean %>% 
+    group_by(Vegetation_Zone, Year, Species) %>% 
+    summarize(Cover = mean(Cover, na.rm = TRUE)) %>% 
+    ggplot(aes(x = Year, y = Cover,
+               group = Species, fill = Species),
+           alpha = 0.8) +
+    geom_col(position = "stack") +
+    facet_wrap(~Vegetation_Zone) +
+    scale_fill_manual(values = palcols_top) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(title = "Vegetation Cover through time",
+         subtitle = "averaged by Species within Zone",
+         y = "% Cover",
+         fill = "Species or \nVegetation Group")
+```
+
+
+## Averaged: By Site  
+
+
+### User-chosen species  
+
+```{r graph-avgBar-userChosen-Site, message = FALSE}
+anaSpec_dfs$multivar %>% 
+    group_by(SiteID, Year, Species_or_Group) %>% 
+    summarize(Cover = mean(Cover, na.rm = TRUE)) %>% 
+    ggplot(aes(x = Year, y = Cover,
+               group = Species_or_Group, fill = Species_or_Group),
+           alpha = 0.8) +
+    geom_col(position = "stack") +
+    facet_wrap(~SiteID) +
+    scale_fill_manual(values = palcols_multivar) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(title = "Vegetation Cover through time",
+         subtitle = "averaged by Species within Site",
+         y = "% Cover",
+         fill = "Species or \nVegetation Group")
+```
+
+
+### Top 3 species by mean cover across the entire dataset  
+
+```{r graph-avgBar-top3-Site, message = FALSE}
+top_3_mean %>% 
+    group_by(SiteID, Year, Species) %>% 
+    summarize(Cover = mean(Cover, na.rm = TRUE)) %>% 
+    ggplot(aes(x = Year, y = Cover,
+               group = Species, fill = Species),
+           alpha = 0.8) +
+    geom_col(position = "stack") +
+    facet_wrap(~SiteID) +
+    scale_fill_manual(values = palcols_top) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(title = "Vegetation Cover through time",
+         subtitle = "averaged by Species within Site",
+         y = "% Cover",
+         fill = "Species or \nVegetation Group")
+```
+
+
+## Averaged: Zone within Site  
+
+### User-chosen species  
+
+```{r graph-avgBar-userChosen-Zone, message = FALSE}
+anaSpec_dfs$multivar %>% 
+    group_by(SiteID, Vegetation_Zone, Year, Species_or_Group) %>% 
+    summarize(Cover = mean(Cover, na.rm = TRUE)) %>% 
+    ggplot(aes(x = Year, y = Cover,
+               group = Species_or_Group, fill = Species_or_Group),
+           alpha = 0.8) +
+    geom_col(position = "stack") +
+    facet_grid(Vegetation_Zone~SiteID) +
+    scale_fill_manual(values = palcols_multivar) +
+    scale_x_continuous(breaks = scales::pretty_breaks()) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, size = rel(0.8))) +
+    labs(title = "Vegetation Cover through time",
+         subtitle = "averaged by Species within Site/Zone combination",
+         y = "% Cover",
+         fill = "Species or \nVegetation Group")
+```
+
+### Top 3 species by mean cover across the entire dataset  
+
+```{r graph-avgBar-top3-Zone, message = FALSE}
+top_3_mean %>% 
+    group_by(SiteID, Vegetation_Zone, Year, Species) %>% 
+    summarize(Cover = mean(Cover, na.rm = TRUE)) %>% 
+    ggplot(aes(x = Year, y = Cover,
+               group = Species, fill = Species),
+           alpha = 0.8) +
+    geom_col(position = "stack") +
+    facet_grid(Vegetation_Zone~SiteID) +
+    scale_fill_manual(values = palcols_top) +
+    scale_x_continuous(breaks = scales::pretty_breaks()) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, size = rel(0.8))) +
+    labs(title = "Vegetation Cover through time",
+         subtitle = "averaged by Species within Site/Zone combination",
+         y = "% Cover",
+         fill = "Species or \nVegetation Group")
+```
+
+
+## Spatial  
+
+One spatial graph was generated for each `r addlOptions$Choice[addlOptions$R_param == "spatOption"]`. This can be changed between the options of Site and Transect in the "More_Options" sheet of the "veg-specs.xlsx" file.  
+
+Each panel on the graphs represents an individual vegetation plot, showing 4 evenly spaced-through-time samples, of the species choices from the "Analysis_Specs" sheet of the "veg-specs.xlsx" file.    
+
+
+```{r spatial-option-setup}
+spatOption <- addlOptions$Choice[addlOptions$R_param == "spatOption"]
+
+if(spatOption == "Site"){
+    
+    # new column = Site only
+    stn_tbl$spatOption <- stn_tbl$SiteID
+    anaSpec_dfs$spat$spatOption <- anaSpec_dfs$spat$SiteID
+    top_3_mean$spatOption <- top_3_mean$SiteID
+    
+} else if(spatOption == "Transect"){
+    
+    # new column = Site + Transect
+    stn_tbl$spatOption <- paste(stn_tbl$SiteID, 
+                                stn_tbl$TransectID,
+                                sep = "_")
+    anaSpec_dfs$spat$spatOption <- paste(anaSpec_dfs$spat$SiteID,
+                                         anaSpec_dfs$spat$TransectID,
+                                         sep = "_")
+    top_3_mean$spatOption <- paste(top_3_mean$SiteID, 
+                                   top_3_mean$TransectID,
+                                   sep = "_")
+    
+} else {
+    message("Please select either 'Site' or 'Transect' in your Analysis_Specs file")
+}
+```
+
+
+
+Plots without associated spatial locations will not be included in these graphics.  
+
+#### User-chosen species  
+
+```{r graph-spatial-userChosen, fig.width = 8, fig.height = 4}
+# add user-chosen species into station table for the sole purpose of generating a legend.  
+stn_tbl$Species_or_Group <- rep_len(unique(anaSpec_dfs$spat$Species_or_Group), length.out = nrow(stn_tbl))
+
+
+for(st in unique(stn_tbl$spatOption)){
+    
+    # subset to the site or transect
+    stn_tmp <- stn_tbl[stn_tbl$spatOption == st, ]
+    stn_tmp <- stn_tmp[!is.na(stn_tmp$Latitude), ]
+    
+    long_offset <- (max(stn_tmp$Longitude) - min(stn_tmp$Longitude)) * 0.05
+    lat_offset <- (max(stn_tmp$Latitude) - min(stn_tmp$Latitude)) * 0.11
+    
+    # blank plot canvas
+    base <- ggplot(stn_tmp, aes(x = Longitude, y = Latitude, 
+                                group = Species_or_Group,
+                                fill = Species_or_Group)) +
+        geom_col(na.rm = TRUE) +  # necessary to make legend show up
+        labs(title = paste(params$file_code, st),
+             x = "Longitude",
+             y = "Latitude",
+             fill = "Species or \nVegetation Group") +
+        scale_x_continuous(limits = c(min(stn_tmp$Longitude) - long_offset, max(stn_tmp$Longitude) + long_offset)) +
+        scale_y_continuous(limits = c(min(stn_tmp$Latitude) - lat_offset, max(stn_tmp$Latitude) + lat_offset)) +
+        scale_fill_manual(values = palcols_spec) +
+        theme_bw() +
+        theme(legend.position = "right")
+    
+    
+    # subset the lumped data to the single site or transect
+    dat_tmp <- anaSpec_dfs$spat[anaSpec_dfs$spat$spatOption == st, ]
+    # and only keep the plots from above, with lat/long coords
+    dat_tmp <- dat_tmp[dat_tmp$StTrnsPlt %in% stn_tmp$PlotID_full, ]
+    
+    
+    
+    # loop through each plot at the site/transect
+    # make a barplot of the selected species + other 
+    #    (unless other was turned off in Analysis_Specs, 
+    #    in which case the plot will only contain the species,  
+    #    and some panels may be blank)
+    # add barplot as subplot to the blank canvas, based on lat/long
+    for (plt in unique(dat_tmp$StTrnsPlt)){
+        
+        dat_plt <- dat_tmp[dat_tmp$StTrnsPlt==plt, ]
+        yrs <- dat_plt$Years_sinceStart
+        
+        # subset the years: min, max, and as close as possible to the difference/3  
+        
+        un_yrs <- unique(yrs)
+        div <- (max(un_yrs) - min(un_yrs)) / 3
+        divs_to_keep <- c(min(un_yrs) + div,
+                          max(un_yrs) - div)
+        
+        
+        # figure out what to keep by finding the closest actual measurement to each, using absolute values
+        keeps2 <- un_yrs[which(abs(un_yrs - divs_to_keep[1]) == min(abs(un_yrs - divs_to_keep[1])))]
+        keeps3 <- un_yrs[which(abs(un_yrs - divs_to_keep[2]) == min(abs(un_yrs - divs_to_keep[2])))]
+        
+        keeps <- c(min(un_yrs), keeps2, keeps3, max(un_yrs))
+        
+        # re-subset the data frame to only those years
+        dat_plt <- dat_plt[dat_plt$Years_sinceStart %in% keeps, ]
+        
+        # make the subplot
+        subplo <- ggplotGrob(ggplot(dat_plt) +
+                                 geom_col(aes(x = as.factor(Years_sinceStart),
+                                              y = Cover,
+                                              fill = Species_or_Group),
+                                          # width = 0.8,
+                                          position = "stack",
+                                          alpha = 0.8,
+                                          show.legend = FALSE) +
+                                 scale_fill_manual(values = palcols_spec) +
+                                 theme_void() + 
+                                 theme(panel.border = element_rect(linetype = "dashed", fill = NA)))
+        
+        # get coordinates for subplot
+        lat <- stn_tmp[stn_tmp$PlotID_full==plt, ]$Latitude[1]  # in case there are multiple rows for a plot
+        long <- stn_tmp[stn_tmp$PlotID_full==plt, ]$Longitude[1]
+        
+        # add the subplot to the graph
+        
+        base <- base + 
+            annotation_custom(grob = subplo,
+                              xmin = long - long_offset,
+                              xmax = long + long_offset,
+                              ymin = lat - lat_offset,
+                              ymax = lat + lat_offset)
+        
+    }
+    print(base)
+    
+}
+
+```
+
+#### Top 3 species by mean cover across the entire dataset  
+
+```{r graph-spatial-top3, fig.width = 8, fig.height = 4}
+# add top 3 species into station table for the sole purpose of generating a legend.  
+stn_tbl$Species <- rep_len(unique(top_3_mean$Species), length.out = nrow(stn_tbl))
+
+
+for(st in unique(stn_tbl$spatOption)){
+    
+    # subset to the site or transect
+    stn_tmp <- stn_tbl[stn_tbl$spatOption == st, ]
+    stn_tmp <- stn_tmp[!is.na(stn_tmp$Latitude), ]
+    
+    long_offset <- (max(stn_tmp$Longitude) - min(stn_tmp$Longitude)) * 0.05
+    lat_offset <- (max(stn_tmp$Latitude) - min(stn_tmp$Latitude)) * 0.11
+    
+    # blank plot canvas
+    base <- ggplot(stn_tmp, aes(x = Longitude, y = Latitude, 
+                                group = Species,
+                                fill = Species)) +
+        geom_col(na.rm = TRUE) +  # necessary to make legend show up
+        labs(title = paste(params$file_code, st),
+             x = "Longitude",
+             y = "Latitude",
+             fill = "Species or \nVegetation Group") +
+        scale_x_continuous(limits = c(min(stn_tmp$Longitude) - long_offset, max(stn_tmp$Longitude) + long_offset)) +
+        scale_y_continuous(limits = c(min(stn_tmp$Latitude) - lat_offset, max(stn_tmp$Latitude) + lat_offset)) +
+        scale_fill_manual(values = palcols_top) +
+        theme_bw() +
+        theme(legend.position = "right")
+    
+    
+    # subset the lumped data to the single site/transect
+    dat_tmp <- top_3_mean[top_3_mean$spatOption == st, ]
+    # and only keep the plots from above, with lat/long coords
+    dat_tmp <- dat_tmp[dat_tmp$PlotID_full %in% stn_tmp$PlotID_full, ]
+ 
+
+    # loop through each plot at the site
+    # make a barplot of the top 3 species + other 
+    #    (unless other was turned off, then species only)
+    # and add as subplot to the blank canvas, based on lat/long
+    for (plt in unique(dat_tmp$PlotID_full)){
+        
+        dat_plt <- dat_tmp[dat_tmp$PlotID_full==plt, ]
+        yrs <- dat_plt$Years_sinceStart
+            
+        # subset the years: min, max, and as close as possible to the difference/3  
+
+        un_yrs <- unique(yrs)
+        div <- (max(un_yrs) - min(un_yrs)) / 3
+        divs_to_keep <- c(min(un_yrs) + div,
+                          max(un_yrs) - div)
+        
+
+        # figure out what to keep by finding the closest actual measurement to each, using absolute values
+        keeps2 <- un_yrs[which(abs(un_yrs - divs_to_keep[1]) == min(abs(un_yrs - divs_to_keep[1])))]
+        keeps3 <- un_yrs[which(abs(un_yrs - divs_to_keep[2]) == min(abs(un_yrs - divs_to_keep[2])))]
+
+        keeps <- c(min(un_yrs), keeps2, keeps3, max(un_yrs))
+        
+        # re-subset the data frame to only those years
+        dat_plt <- dat_plt[dat_plt$Years_sinceStart %in% keeps, ]
+
+        # make the subplot
+        subplo <- ggplotGrob(ggplot(dat_plt) +
+                                 geom_col(aes(x = as.factor(Years_sinceStart),
+                                              y = Cover,
+                                              fill = Species),
+                                          # width = 0.8,
+                                          position = "stack",
+                                          alpha = 0.8,
+                                          show.legend = FALSE) +
+                                 scale_fill_manual(values = palcols_top) +
+                                 theme_void() + 
+                                 theme(panel.border = element_rect(linetype = "dashed", fill = NA)))
+        
+        # get coordinates for subplot
+        lat <- stn_tmp[stn_tmp$PlotID_full==plt, ]$Latitude[1]
+        long <- stn_tmp[stn_tmp$PlotID_full==plt, ]$Longitude[1]
+        
+        # add the subplot to the graph
+        
+        base <- base + 
+            annotation_custom(grob = subplo,
+                              xmin = long - long_offset,
+                              xmax = long + long_offset,
+                              ymin = lat - lat_offset,
+                              ymax = lat + lat_offset)
+         
+    }
+    print(base)
+    
+}
+```
+
+
+```{r cleanup-002}
+# cleanup
+rm(plt, st,
+   stn_tmp, long_offset, lat_offset, base,
+   dat_tmp, dat_plt, yrs, un_yrs, div,
+   divs_to_keep, keeps2, keeps3, keeps,
+   subplo, lat, long)
+```
+

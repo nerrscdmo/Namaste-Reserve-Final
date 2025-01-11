@@ -1,0 +1,225 @@
+---
+title: ''
+output: html_document
+---
+
+## About  
+
+A tab will be generated for results of each response variable. The response variables consist of each of the (up to) 4 response variables identified in the Analysis Specs spreadsheet, (up to) 2 custom metrics identified in the Analysis Specs spreadsheet, EMI (Ecotone Migration Index), Species Richness, and Shannon-Weiner Diversity Index. You will see the same tables and graphics for each.  
+
+### Questions addressed  
+
+-  Are there shifts in key vegetation species/groups over time?  
+-  Do these shifts vary by vegetation zone?  
+-  Follow-up: Where is the plant community changing (which plots) and what characteristics do those areas have in common (e.g. site, zone, distance from water, elevation)?  
+
+
+### Statistical Model  
+
+The main statistical model used is a linear mixed model, via `lme4::lmer()`, with the form `y ~ Vegetation Zone + Time + Zone*Time + 1|Plot`, where `y` is the response variable given in the tab, and each individual plot has a random intercept.   
+
+If only one vegetation zone is present in the data file, Vegetation Zone is removed and the statistical model is simplified to `y ~ Time + 1|Plot`.  
+
+
+### Reserve-identified response variables:  
+
+The reserve-identified univariate response variables are:  
+
+```{r show-userChoice-univar, results = 'asis'}
+cat(paste("*", anaSpec_list$univar$Choice), sep="\n")
+```
+
+```{r mod-univar-df}
+# widen out the univar data frame
+# it's grouped appropriately for these analyses  
+dat_univar <- anaSpec_dfs$univar %>% 
+    pivot_wider(names_from = Species_or_Group,
+                values_from = Cover)
+
+# join EMI - use a join because rows might not be in same order
+EMI_df <- dat %>% 
+    select(StTrnsPlt, Year, Month, Day, EMI)
+
+dat_univar <- left_join(dat_univar, EMI_df) %>% 
+    left_join(dat_div)
+```
+
+```{r}
+# remove plots that don't have at readings in at least 3 separate years
+dat_univar <- filter(dat_univar, !(StTrnsPlt %in% not_enough$StTrnsPlt))
+```
+
+
+### Custom Metrics  
+
+Any custom metrics specified in the 'Analysis_Specs' sheet of the 'veg-specs.xlsx' file are calculated here, for inclusion in univariate analyses.  
+
+If you do not see a tab for a metric you believe you defined, look just below these bullet points to see if there are error messages showing up in little boxes that are different from other text - these may be helpful in troubleshooting. There are a few likely reasons for problems:  
+
+-  Make sure the species or groupings you want to use are in the 'Species_Names' sheet of your data file.  
+-  Make sure any species or groupings are enclosed in backticks. **Backticks are not the same as single quotes or apostrophes.** To make a backtick, use the key to the left of the number 1 on your keyboard.  
+-  Make sure species and groups are spelled correctly.  
+-  Make sure species and groups are capitalized correctly ("correctly" = however it is capitalized in the 'Species_Names' sheet of the data file). e.g., if you want to include 'live vegetation' in your metric, check the Species_Names sheet of the data file and you will see it is 'Live vegetation'. If you capitalize it any other way, R will not recognize it and thus will not calculate the metric.  
+-  Check your math - if you are using division, try adding 1 to the denominator to avoid the possibility of dividing by 0. Make sure you have parentheses around terms that should be evaluated together.  
+
+```{r custom-calcs}
+# allow for custom names for the custom metrics
+custom_name1 <- addlOptions$Choice[addlOptions$R_param == "Custom_metric1_name"]
+custom_name1 <- ifelse(is.na(custom_name1) | custom_name1 == "", "Custom_metric1", custom_name1)
+
+custom_name2 <- addlOptions$Choice[addlOptions$R_param == "Custom_metric2_name"]
+custom_name2 <- ifelse(is.na(custom_name2) | custom_name2 == "", "Custom_metric2", custom_name2)
+
+# process custom metrics 
+
+# first custom metric
+if("custom1" %in% anaSpecs$R_varName){
+    user_formula1 <- anaSpecs$Choice[anaSpecs$R_varName == "custom1"]
+    user_formula1_parsed <- rlang::parse_expr(user_formula1)
+    terms1 <- extract_terms(user_formula1)
+    dat_custom <- process_custom_metric_terms(terms = terms1,
+                                              dat = dat)
+    
+    # make formulas vector for printing
+    formulas <- user_formula1
+
+}
+
+# second custom metric - dat_custom should already exist from custom 1
+if("custom2" %in% anaSpecs$R_varName){
+    user_formula2 <- anaSpecs$Choice[anaSpecs$R_varName == "custom2"]
+    user_formula2_parsed <- rlang::parse_expr(user_formula2)
+    
+    terms2 <- extract_terms(user_formula2)
+    dat_custom <- process_custom_metric_terms(terms = terms2,
+                                              dat = dat_custom)
+    
+    formulas <- c(formulas, user_formula2)
+}
+
+# if at least one custom metric exists,
+# calculate it/them and run the analyses
+if(exists("dat_custom")){
+    # now that all the proper columns exist, do the math
+    # custom metric 1 must exist for dat_custom to exist
+    try(
+        dat_custom <- dat_custom %>% 
+            mutate(!!custom_name1 := !!user_formula1_parsed)
+    )
+    
+    # custom metric 2 may or may not exist, so make it an if statement
+    if("custom2" %in% anaSpecs$R_varName){
+        try(
+            dat_custom <- dat_custom %>% 
+                mutate(!!custom_name2 := !!user_formula2_parsed)
+        )
+    }
+    
+    # select proper columns
+    dat_custom <- dat_custom %>% 
+        select(Reserve:Total,
+               starts_with(custom_name1),
+               starts_with(custom_name2))
+}
+```
+
+
+
+
+```{r}
+# set up a list of univariate output info
+# estimates, CIs, etc.
+# in case we ever want to generate a summary spreadsheet
+univar_outputs <- list()
+```
+
+
+
+## EMI   
+
+EMI, Ecotone Migration Index, is the proportional cover of species/covers or species/cover groupings that are expected to increase within a vegetation zone as sea level rises. These species were identified by reserve staff, for each zone, in the 'veg-specs.xlsx' file. 
+
+See the 'EMI' tab in the 'Exploratory and QA/QC' section of this document for a table of species considered to be 'ecotone migrators' for each zone.  
+
+
+```{r define-univar-EMI}
+respn <- "EMI"
+dat_univar$resp <- unlist(dat_univar[which(names(dat_univar) == respn)])
+```
+
+
+```{r source-003-EMI, child = "003a_model_run.Rmd"}
+
+```
+
+
+
+## Richness  
+
+Species Richness, calculated on all non-abiotic, non-dead, and non-overstory columns; using the `vegan` package.
+
+```{r define-univar-richness}
+respn <- "Richness"
+dat_univar$resp <- unlist(dat_univar[which(names(dat_univar) == respn)])
+```
+
+```{r source-003a-userChosen1b, child = "003a_model_run.Rmd"}
+
+```
+
+
+
+## Diversity  
+
+Shannon-Weiner Diversity index, calculated on all non-abiotic, non-dead, and non-overstory columns; using the `vegan` package.  
+
+```{r define-univar-diversity}
+respn <- "SWdiv"
+dat_univar$resp <- unlist(dat_univar[which(names(dat_univar) == respn)])
+```
+
+```{r source-003a-userChosen1c, child = "003a_model_run.Rmd"}
+
+```
+
+
+
+
+```{r, results = "asis"}
+# user-identified univariate responses  
+respns <- anaSpec_list$univar$Choice
+for(i in seq_along(respns)){
+    respn <- respns[i]
+    cat("\n")
+    cat("##", respn, "\n")
+    dat_univar$resp <- unlist(dat_univar[which(names(dat_univar) == respn)])
+    chld <- knitr::knit_child("003a_model_run.Rmd", quiet = TRUE)
+    cat(chld, sep = "\n")
+}
+```
+
+
+```{r, results = "asis"}
+# custom metrics
+
+if(exists("dat_custom")){    
+    # custom metric columns:
+    respns <- names(dat_custom)[which(names(dat_custom) %in% c(custom_name1, custom_name2))]
+    
+    # join with the univariate data frame
+    # left join in case the number of rows differs; let dat_univar decide
+    dat_univar <- left_join(dat_univar, dat_custom)
+    
+    for(i in seq_along(respns)){
+        respn <- respns[i]
+        cat("\n")
+        cat("##", respn, "\n")
+        cat("\n", "This custom metric was calculated using the following formula: \n\n", formulas[i], "\n\n")
+ 
+        dat_univar$resp <- unlist(dat_univar[which(names(dat_univar) == respn)])
+        chld <- knitr::knit_child("003a_model_run.Rmd", quiet = TRUE)
+        cat(chld, sep = "\n")
+    }
+    
+}
+```

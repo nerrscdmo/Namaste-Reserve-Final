@@ -1,0 +1,254 @@
+---
+title: ''
+output: html_document
+---
+
+
+## About  
+
+This section contains tables and graphs, in separate tabs.  
+
+To detect errors in data sets, the information in this section should be reviewed by Reserve data practitioners. These results are meant to help you find issues that need to be corrected in the raw data, and decide whether plots or data should be removed from analyses (e.g., “off season” surveys, plots no longer monitored, restoration sites).
+
+
+### Ask yourself:  
+
+-  Do you see the correct number of sampling events per year? If not, what is missing or extra? This implies a correction needs to be made in the raw data file.  
+-  Do you see the correct number of plots per site?  
+-  Are species names spelled correctly? Are there any close variants or duplicates (e.g., capital vs lowercase, misspelled)?   
+-  General percent cover in plots - is anything unusual (e.g., over 100% when standardized, sudden drops or spikes in species)?  
+
+
+
+
+## Missing/Removed Data  
+
+### Plots/dates without samples  
+
+There were **`r nrow(unsampds)` rows** with no data. These rows were removed from the dataset before further processing. If rows were removed, relevant information is in a table below.   
+
+```{r show-unsampleds}
+if(nrow(unsampds) > 0){
+    unsampds %>% 
+        DT::datatable(rownames = FALSE,
+                      caption = "Plots/Dates with no sampling information") 
+}
+```
+
+
+### Plots without enough samples  
+
+If monitoring plots did not have data in at least 3 separate years, they were removed from the dataset before statistical analyses. These plots **do** appear in the plots and information in the *Exploration/QAQC* and *Summary Bar Chart* sections of this document, but were removed before Univariate and Multivariate analyses. 
+
+In this dataset, there were **`r nrow(not_enough)`** such plots removed. If plots were removed, relevant information is in a table below. 
+
+```{r}
+if(nrow(not_enough) > 0){
+    not_enough %>% 
+        DT::datatable(rownames = FALSE,
+                      caption = "Plots with < 3 separate years of readings") 
+}
+```
+
+
+
+### Data flagged suspect or reject  
+
+There were **`r nrow(susps)` data points** that were removed due to QA/QC flags. If data points were removed, relevant information is in a table below.
+
+
+```{r show-flagged, message = FALSE}
+if(nrow(susps) > 0){
+    susps %>% 
+        DT::datatable(rownames = FALSE,
+                      caption = "Removed data points") 
+}
+```
+
+
+## Sampling Info  
+
+### Samples per year  
+
+```{r show-sampling-info}
+dat %>% 
+    group_by(SiteID, Year) %>% 
+    tally() %>% 
+    arrange(Year, SiteID) %>% 
+    rename(Site = SiteID) %>% 
+    pivot_wider(names_from = Year,
+                values_from = n,
+                values_fill = 0) %>% 
+    arrange(Site) %>% 
+    kable(caption = "# samples per year, by site") %>%
+    kable_styling("striped") %>%
+    scroll_box(width = "600px", height = "300px")
+```
+
+```{r}
+cat("\n\n")
+```
+
+```{r}
+dat %>% 
+    group_by(Vegetation_Zone, Year) %>% 
+    tally() %>% 
+    arrange(Year, Vegetation_Zone) %>% 
+    pivot_wider(names_from = Year,
+                 values_from = n,
+                values_fill = 0) %>% 
+    arrange(Vegetation_Zone) %>% 
+    kbl_nmst(caption = "# samples per year, by vegetation zone") %>% 
+    scroll_box(width = "600px", height = "300px")
+```
+
+
+### Species  
+
+```{r show-species, message = FALSE}
+DT::datatable(spp_summ, 
+              rownames = FALSE,
+              caption = "Species cover and presence per site, across all years. This table is sortable and searchable.")
+```
+
+## Plots and Zones  
+
+Make sure the colors below correctly represent which Vegetation Zones your plots belong to. If something looks wrong, it needs to be corrected in the 'Station_Table' tab of your data workbook.  
+
+```{r, fig.height = 7, fig.width = 7}
+ggplot(stn_tbl, aes(x = Longitude, 
+                    y = Latitude, 
+                    col = Vegetation_Zone,
+                    shape = Vegetation_Zone)) + 
+    geom_point() + 
+    facet_wrap(~SiteID, scales = "free") + 
+    scale_y_continuous(labels = function(x) round(x, 3)) +
+    scale_x_continuous(labels = function(x) round(x, 3)) +
+    scale_color_manual(values = palcols_zones) +
+    labs(title = "Plots and their Vegetation Zones, by site",
+         col = "Vegetation Zone",
+         shape = "Vegetation Zone") +
+    theme_bw() +
+    theme(legend.position = "bottom",
+          axis.text.x = element_text(size = rel(0.8),
+                                     angle = 20,
+                                     hjust = 1,
+                                     vjust = 1),
+          axis.text.y = element_text(size = rel(0.8)))
+
+```
+
+
+## Time-series - Species 
+
+### By Zone  
+
+```{r graph-time-userChosen}
+plot_through_time(data = anaSpec_dfs$univar,
+          group = Species_or_Group,
+          panels = Vegetation_Zone) +
+    scale_color_manual(values = palcols_univar) +
+    ggtitle("User-chosen species")
+```
+
+```{r graph-time-top3, message = FALSE}
+plot_through_time(data = top_3_mean,
+          group = Species,
+          panels = Vegetation_Zone) +
+    scale_color_manual(values = palcols_top) +
+    ggtitle("Top 3 species by mean cover")
+```
+
+### All plots combined  
+
+```{r graph-time-userChosen-onePanel}
+ggplot(anaSpec_dfs$univar, aes(x = Year, y = Cover, 
+                     group = Species_or_Group, color = Species_or_Group, fill = Species_or_Group)) +
+        geom_jitter(alpha = 0.2) +
+        geom_smooth(method = "loess", se = FALSE) +
+    scale_color_manual(values = palcols_univar) +
+    scale_x_continuous(breaks = scales::pretty_breaks()) +
+    labs(title = "User-chosen species, all plots combined",
+         y = "% Cover",
+         col = "Species or \nVegetation Group",
+         fill = "Species or \nVegetation Group") +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r graph-time-top3-onePanel, message = FALSE}
+ggplot(top_3_mean, aes(x = Year, y = Cover, 
+                     group = Species, color = Species, fill = Species)) +
+        geom_jitter(alpha = 0.2) +
+        geom_smooth(method = "loess", se = FALSE) +
+    scale_color_manual(values = palcols_top) +
+    scale_x_continuous(breaks = scales::pretty_breaks()) +
+    labs(title = "Top 3 species by mean cover, all plots combined",
+         y = "% Cover",
+         col = "Species or \nVegetation Group",
+         fill = "Species or \nVegetation Group") +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## EMI  
+
+EMI, Ecotone Migration Index, is the proportional cover of species/covers or species/cover groupings that are expected to increase within a vegetation zone as sea level rises. These species were identified by reserve staff, for each zone, in the 'veg-specs.xlsx' file. 
+
+Species considered to be 'migrators' within each zone are denoted by 'x' in the following table:  
+
+```{r show-emi-table}
+kableExtra::kable(emi_spps, align = "c") %>% 
+    kable_styling("striped") %>%
+    scroll_box(width = "800px", height = "200px") 
+```
+
+```{r graph-time-EMI}
+ggplot(dat, aes(x = Year, y = EMI, color = Vegetation_Zone)) +
+    geom_jitter(alpha = 0.4) +
+    facet_wrap(~Vegetation_Zone) +
+    theme(legend.position = "none") +
+    geom_smooth(method = "loess", se = FALSE) +
+    scale_color_manual(values = palcols_zones) +
+    scale_x_continuous(breaks = scales::pretty_breaks()) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(title = "EMI by Zone",
+         subtitle = "as calculated per plot/date combination",
+         y = "Ecotone Migration Index",
+         col = "Vegetation Zone")
+```
+
+
+```{r graph-time-EMI2}
+ggplot(dat, aes(x = Year, y = EMI, color = SiteID)) +
+    geom_jitter(alpha = 0.4) +
+    geom_smooth(method = "loess", se = FALSE) +
+    facet_wrap(~Vegetation_Zone) +
+    scale_color_manual(values = palcols_sites) +
+    scale_x_continuous(breaks = scales::pretty_breaks()) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(title = "EMI by Site, within Zone",
+         y = "Ecotone Migration Index",
+         col = "Site")
+```
+
+
+```{r graph-hist-EMI}
+ggplot(dat) +
+    geom_histogram(aes(x = EMI, fill = Vegetation_Zone),
+                   col = "gray60",
+                   binwidth = 0.1) +
+    facet_wrap(~Vegetation_Zone) +
+    scale_fill_manual(values = palcols_zones) +
+    labs(title = "Histogram of EMI by Vegetation Zone",
+         x = "Ecotone Migration Index") +
+    theme_bw() +
+    theme(legend.position = "none")
+```
+
+
+
+
+

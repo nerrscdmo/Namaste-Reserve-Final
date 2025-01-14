@@ -10,11 +10,11 @@
 
 
 # 2:
-# Run the line of code below. It will cause the app to run in its
-# own pop-up browser window.
+# Run the line of code below by putting your cursor in the line, then
+# either press the 'Run' button in the upper right corner of this panel
+# or use the keyboard shortcut Ctrl/Cmd + Enter. 
+# The app will run in a new pop-up browser window.
 
 ##############################################################################
 
-
-# Call app ----
 source(here::here("R", "02_dataFormattingAppDirectory", "001_runApp.R"))

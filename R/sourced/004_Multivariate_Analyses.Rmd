@@ -744,7 +744,10 @@ This 3-d plot is interactive - you can zoom in and rotate the view. Each point r
 ```{r plot-nmds-3d, eval = datEnough, fig.width = 6, fig.height = 6}
 # set up zone colors
 zone_cols <- as.vector(palcols_zones)
-names(zone_cols) <- NULL
+names(zone_cols) <- data.frame(zone = names(palcols_zones)) %>% 
+    separate(zone, into = c("zone_abbrev", "zone_full"),
+             sep = "-") %>% 
+    pull(zone_abbrev)
 
 # main plot - points for each zone
 # (no centroids)
@@ -887,7 +890,7 @@ if(runBigNMDS){
 
 
 
-All measurements at all veg plots (with 3+ years of data) are represented. Centroids are calculated for each zone x year combination. Plots are zoomable. Two plots are provided: the first uses fixed axis scales, to emphasize where zone centroids are relative to each other in ordination space. The second uses free axis scales, to emphasize within-zone differences between years. There may not be much difference between these visually, depending on the spread of points within each zone. Zooming works differently in each. The loadings plot below applies to both graphs (the entire NDMS).     
+All measurements at all veg plots (with 3+ years of data) are represented. Centroids are calculated for each zone x year combination. Plots are zoomable. Two plots are provided: the first uses fixed axis scales, to emphasize where zone centroids are relative to each other in ordination space. The second uses free axis scales, to emphasize within-zone differences between years. There may not be much difference between these visually, depending on the spread of points within each zone. Zooming works differently in each. The loadings plot below applies to both graphs (the entire NMDS).     
 
 ```{r, eval = runBigNMDS}
 # expl and resp have all values

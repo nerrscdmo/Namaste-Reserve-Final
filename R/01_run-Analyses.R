@@ -1,11 +1,33 @@
-# if your reserve has multiple input files, include them in the 'files' line
-# e.g.:
+# Script to generate html file of exploration and analysis of
+# reserve-level vegetation data
+
+#### INSTRUCTIONS #############################################################
+
+# 1:
+# Re-start your R session to make sure there's no interference:
+# From the menu bar, select 'Session', then 'Restart R'
+# Windows keyboard shortcut is Ctrl + Shift + F10
+
+# 2: 
+# Set up the file or files you want to work with
+# If your reserve has multiple input files, include them both
+# in line 18, in this format:
 # files <- c("APA-LSM", "APA-PC")
 
-# select everything ( ctrl + a ) and run it ( ctrl + enter )
-# then check our 'output' folder for the results!
 
 files <- c("GRB")
+
+
+# 3:
+# Select this entire script. 
+# Keyboard shortcut is Ctrl + a on windows or Cmd + a on Mac
+
+# 4:
+# Run it: either using the "Run" button in the upper right corner
+# or the keyboard shortcut Ctrl/Cmd + Enter
+
+###############################################################################
+
 
 ##############################################################################
 # Do not change the code below
@@ -44,6 +66,10 @@ for(i in seq_along(files)){
     
 }
 
+
+# time check
+Sys.time() - strt
+
 # Report results
 if (length(failed_files) > 0) {
     cat("\nThe following files failed to process:\n")
@@ -52,6 +78,3 @@ if (length(failed_files) > 0) {
     cat("\nAll files processed successfully!\n")
     
 }
-
-# time check
-Sys.time() - strt

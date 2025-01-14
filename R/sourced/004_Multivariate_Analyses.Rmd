@@ -53,10 +53,10 @@ In this section, we use multivariate techniques to ordination to visualize and a
 
 -   Are there shifts in the vegetation community (as defined by the entire percent-cover matrix) over time? Do these shifts vary by vegetation zone?
     -   addressed with PERMANOVA, comparing first year of monitoring to the 'last' (most recent) year of monitoring.
-    -   the first and last year of monitoring at a specific vegetation plot should be considered together. To do this, permutations were restricted to allow swapping of time point within a vegetation plot, but keep both time points of a plot together as plots are permuted across vegetation zones.
+    -   the first and last year of monitoring at a specific vegetation plot should be considered together. To do this, permutations were restricted to allow swapping of time point within a vegetation plot, but keep both time points of a plot together as plots are permuted across vegetation zones. Unfortunately these restricted permutations do not account for the repeated measures within a plot. Ideally we could use a random effect, as in the univariate models. At this point such a model for PERMANOVA is not possible in R.   
     -   if the above test indicated that differences in time between vegetation zones were significant or nearly so (p <= 0.10), the species matrix was split by Vegetation Zone. A PERMANOVA was run for each vegetation zone, again with restricted permutations to allow only permutation of tiem point within vegetation plot.  
 -   Which species/groups contribute most to these shifts?
-    -   addressed using SIMPER, comparing first and last year of monitoring data within each zone. SIMPER is only used to follow up on vegetation zones that indicated a significant community difference in the PERMANOVA.
+    -   addressed using SIMPER, comparing first and last year of monitoring data within each zone. SIMPER is used to follow up on vegetation zones where the p-value for the PERMANOVA was <= 0.2.
 -   Where is the plant community changing, and what characteristics do those areas have in common (e.g. site, zone, distance from water, elevation)?
     -   visualized via NMDS.
 

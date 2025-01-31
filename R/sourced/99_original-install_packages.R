@@ -1,3 +1,13 @@
+# If you are going to use the most updated versions of packages, and avoid
+# using renv, this is the script for installation. Note that packages
+# do change through time, and an updated version of a package may give different
+# than expected results.
+
+# If you are committed to doing this, first deactivate renv:
+renv::deactivate()
+
+# then install the packages below, and do NOT run the code in 00_installl_packages
+
 # file paths, file and data tasks
 install.packages("here")
 install.packages("janitor")
